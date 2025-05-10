@@ -1,0 +1,235 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+
+body {
+    background-color: #f0f2f5;
+    color: #050505;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* NAVBAR */
+.navbar {
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+    height: 56px;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+}
+
+/* Logo */
+.navbar .navbar-brand svg {
+    height: 2em;
+    width: 2em;
+}
+
+/* Pesquisa */
+.search-input {
+    height: 40px;
+    width: 240px;
+    padding-left: 35px;
+    border-radius: 50px;
+    border: none;
+    background-color: #f0f2f5;
+}
+
+.search-icon {
+    position: absolute;
+    top: 50%;
+    left: 15px;
+    transform: translateY(-50%);
+    color: #65676b;
+}
+
+/* Ícones Centrais */
+.navbar .nav-link {
+    height: 100%;
+    width: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-radius: 0;
+    transition: background-color 0.2s;
+}
+
+.navbar .nav-link:hover {
+    background-color: #f0f2f5;
+}
+
+.navbar .nav-link i {
+    font-size: 20px;
+    color: #65676b;
+}
+
+.navbar .nav-link.active i {
+    color: #1877f2;
+}
+
+.navbar .nav-link.active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    height: 3px;
+    width: 100%;
+    background-color: #1877f2;
+    border-radius: 2px 2px 0 0;
+}
+
+/* Ícones a direita */
+.navbar .nav-item-rigth {
+    width: 40px;
+    height: 40px;
+    background-color: #e4e6eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.navbar .nav-item-rigth:hover {
+    background-color: #d8dadf;
+}
+
+.navbar .nav-item-rigth img {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.nav-item{
+    height: 3.3em;
+}
+
+/* Sidebar Esquerda */
+.list-group-item {
+    background-color: transparent;
+    border: none;
+}
+
+.list-group-item:hover {
+    background-color: #e4e6eb;
+    border-radius: 8px;
+}
+
+.list-group-item i {
+    font-size: 1.25rem;
+}
+
+.list-group.bg-transparent .list-group-item {
+    background-color: transparent;
+    border: none;
+}
+
+/* feed */
+.card {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.card-header,
+.card-body,
+.card-footer {
+    background-color: #fff;
+}
+
+.post {
+    background-color: #f0f2f5;
+    border: none;
+}
+
+.btn-sm {
+    font-size: 0.875rem;
+}
+
+.btn-light {
+    background-color: #e4e6eb;
+    border: none;
+}
+
+.btn-light:hover {
+    background-color: #d8dadf;
+}
+
+.list-group-item-action:hover {
+    background-color: #d3d6db !important;
+}
+
+/* REsponsividade para Mobile*/
+@media (max-width: 576px) {
+    .navbar .nav-link {
+        width: 50px;
+    }
+
+    .navbar .nav-link i {
+        font-size: 18px;
+    }
+
+    .navbar .nav-link.active::after {
+        width: 70%;
+    }
+
+    .search-input {
+        width: 140px;
+    }
+
+    .navbar .nav-item-rigth {
+        width: 36px;
+        height: 36px;
+    }
+
+    .navbar .nav-item-rigth img {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+.cover-photo {
+    height: 300px;
+    object-fit: cover;
+    width: 100%;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.profile-pic {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 5px solid white;
+    position: absolute;
+    bottom: -80px;
+    left: 30px;
+}
+
+.profile-header {
+    position: relative;
+    margin-bottom: 80px;
+}
+
+.profile-info {
+    margin-left: 210px;
+    margin-top: 10px;
+}
+
+.nav-profile a {
+    font-weight: 500;
+    margin-right: 20px;
+    color: #333;
+    text-decoration: none;
+}
+
+.nav-profile a.active {
+    border-bottom: 2px solid #1877f2;
+    color: #1877f2;
+}
+
+.card {
+    border-radius: 12px;
+}
