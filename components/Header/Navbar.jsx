@@ -1,5 +1,5 @@
 import React from 'react';
-
+import Link from 'next/link';
 export default function Navbar() {
     return (
         <nav className="navbar navbar-light bg-white shadow-sm px-3" style={{ height: "56px" }}>
@@ -34,9 +34,15 @@ export default function Navbar() {
                         <a href="#" className="btn btn-light rounded-circle"><i className="fas fa-plus"></i></a>
                         <a href="#" className="btn btn-light rounded-circle"><i className="fab fa-facebook-messenger"></i></a>
                         <a href="#" className="btn btn-light rounded-circle"><i className="fas fa-bell"></i></a>
-                        <a href="./profile.html" className="btn btn-light rounded-circle">
-                            <img src="https://i.pravatar.cc/150?img=6" width="32" height="32" className="rounded-circle" alt="Perfil" />
-                        </a>
+                        <Link href={`/profile/1`} className="btn btn-light rounded-circle">
+                            <img
+                                src="https://i.pravatar.cc/150?img=6"
+                                width="32"
+                                height="32"
+                                className="rounded-circle"
+                                alt="Perfil"
+                            />
+                        </Link>
                     </div>
 
                 </div>

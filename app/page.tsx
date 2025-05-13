@@ -1,9 +1,9 @@
 import Image from "next/image";
 import styles from "./page.module.css";
-import Navbar from "@/components/Navbar.jsx"
-import SidebarLeft from "@/components/SidebarLeft.jsx";
-import SidebarRight from "@/components/SidebarRight.jsx";
-import Feed from "@/components/Feed.jsx";
+import Navbar from "@/components/Header/Navbar.jsx"
+import SidebarLeft from "@/components/Home/SidebarLeft.jsx";
+import SidebarRight from "@/components/Home/SidebarRight.jsx";
+import Feed from "@/components/Home/Feed.jsx";
 
 export default function Home() {
   return (
