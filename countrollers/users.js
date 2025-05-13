@@ -1,4 +1,4 @@
-// routes/users.js
+// countrollers/users.js
 const express = require('express');
 const pool = require('../db');
 const authenticateToken = require('../middleware/auth');

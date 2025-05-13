@@ -121,7 +121,7 @@ router.post('/register', (req, res) => {
     });
 });
 
-// routes/auth.js
+// countrollers/auth.js
 router.post('/logout', (req, res) => {
     // não há nada a invalidar no servidor
     res.status(200).json({ message: 'Desconectado com sucesso' });

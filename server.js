@@ -1,7 +1,7 @@
 // server.js
 const express = require('express');
-const usersRouter = require('./routes/users');
-const authRouter  = require('./routes/auth'); // se tiver rota de login/registro
+const usersRouter = require('./countrollers/users');
+const authRouter  = require('./countrollers/auth'); // se tiver rota de login/registro
 
 const app = express();
 app.use(express.json());
