@@ -1,5 +1,5 @@
 // db.js
-const mysql = require('mysql2');
+/*const mysql = require('mysql2');
 
 const pool = mysql.createPool({
     host           : 'localhost',
@@ -7,6 +7,19 @@ const pool = mysql.createPool({
     password       : 'root',
     database       : 'mini_social_facebook',
     connectionLimit: 10
+});
+
+module.exports = pool;
+*/
+// db.js
+const mysql = require('mysql2');
+
+const pool = mysql.createPool({
+    host: 'localhost',
+    user: 'root',
+    password: '78787878Vv!', // mete aqui a tua password, se tiveres
+    database: 'social_network',
+    port: 3306
 });
 
 module.exports = pool;

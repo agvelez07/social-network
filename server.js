@@ -1,18 +1,19 @@
-// server.js
 const express = require('express');
-const usersRouter = require('./countrollers/users');
-const authRouter  = require('./countrollers/auth'); // se tiver rota de login/registro
+const cors = require('cors');
+const usersRouter = require('./controllers/users');
+const authRouter  = require('./controllers/auth');
 
 const app = express();
+
+app.use(cors({ origin: 'http://localhost:3000' }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-
-
-// Rotas que requerem token
 app.use('/users', usersRouter);
 app.use('/auth', authRouter);
+
 app.get('/', (_req, res) => {
-    res.send('Mini Social API com callbacks OK!')
+    res.send('Mini Social API com callbacks OK!');
 });
 
 const PORT = 4000;

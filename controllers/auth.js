@@ -45,6 +45,8 @@ router.post('/login', (req, res) => {
 
 // Rota de registro
 router.post('/register', (req, res) => {
+    console.log("📦 Corpo do pedido recebido:", req.body);
+
     const {
         first_name,
         last_name,
@@ -121,7 +123,7 @@ router.post('/register', (req, res) => {
     });
 });
 
-// countrollers/auth.js
+// controllers/auth.js
 router.post('/logout', (req, res) => {
     // não há nada a invalidar no servidor
     res.status(200).json({ message: 'Desconectado com sucesso' });

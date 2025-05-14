@@ -1,7 +1,39 @@
+'use client';
+
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-export default function Profile() {
+const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
+    const formData = new FormData(e.currentTarget);
+
+    const payload = {
+        first_name: formData.get("first_name"),
+        last_name: formData.get("last_name"),
+        username: formData.get("username"),
+        password: formData.get("password"),
+        age: Number(formData.get("age")),
+        gender: formData.get("gender"),
+        address: formData.get("address"),
+        phone_number: formData.get("phone_number"),
+        email: formData.get("email"),
+        birthday_date: formData.get("birthday_date"),
+        display_name: formData.get("display_name")
+    };
+
+    const response = await fetch("http://localhost:4000/auth/register", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    console.log(result);
+};
+
+export default function Profile() {
     return (
         <div className="card shadow p-4" style={{ width: '100%', maxWidth: '400px' }}>
             <div className="text-center mb-4">
@@ -9,15 +41,15 @@ export default function Profile() {
                 <p className="text-muted">Entra na tua conta</p>
             </div>
 
-            <form action="index.html" method="POST">
+            <form onSubmit={handleRegister}>
                 <div className="mb-3">
                     <label htmlFor="email" className="form-label">Email ou Telefone</label>
-                    <input type="email" className="form-control" id="email" placeholder="pedro_pwbd@portalegre.com" />
+                    <input type="email" name="email" className="form-control" id="email" placeholder="pwbd@ipp.pt" required />
                 </div>
 
                 <div className="mb-3">
-                    <label htmlFor="senha" className="form-label">Palavra-passe</label>
-                    <input type="password" className="form-control" id="senha" placeholder="••••••••••••••••••" />
+                    <label htmlFor="password" className="form-label">Palavra-passe</label>
+                    <input type="password" name="password" className="form-control" id="senha" placeholder="••••••••••••••••••" required />
                 </div>
 
                 <div className="d-grid mb-3">

@@ -6,7 +6,7 @@ const authenticateToken = require('../middleware/auth');
 let likes = [];
 let nextId = 1;
 
-// Apply authentication to all /likes countrollers
+// Apply authentication to all /likes controllers
 router.use(authenticateToken);
 
 // GET /likes - list all likes
