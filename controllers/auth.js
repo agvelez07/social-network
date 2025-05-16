@@ -7,37 +7,47 @@ const router  = express.Router();
 const SECRET  ='secretKey';
 
 // Rota de login
+// router.post('/login')
 router.post('/login', (req, res) => {
-    const { username, password } = req.body;
+    const email = req.body.email?.trim().toLowerCase(); // Normaliza o email
+    const password = req.body.password;
 
-    // 1) Busca o usuário pelo username
     pool.query(
-        'SELECT id, password_hash FROM users WHERE username = ?',
-        [username],
+        'SELECT id, email, password_hash FROM users WHERE email = ?',
+        [email],
         (err, results) => {
             if (err) {
-                console.error(err);
+                console.error("Erro na query:", err);
                 return res.status(500).json({ error: 'Erro no servidor' });
             }
-            if (results.length === 0) {
-                return res.status(401).json({ error: 'Usuário ou senha incorretos' });
+
+            console.log("📥 Resultado da query:", results);
+
+            if (!results || results.length === 0) {
+                console.warn("Email não encontrado na BD:", email);
+                return res.status(401).json({ error: 'Email ou senha incorretos' });
             }
 
-            const { id, password_hash } = results[0];
+            const { id, email: userEmail, password_hash } = results[0];
+            console.log("Utilizador encontrado:", userEmail);
+            console.log("Hash da BD:", password_hash);
 
-            // 2) Verificação da senha
             bcrypt.compare(password, password_hash, (cmpErr, isMatch) => {
                 if (cmpErr) {
-                    console.error(cmpErr);
+                    console.error("Erro ao comparar password:", cmpErr);
                     return res.status(500).json({ error: 'Erro ao verificar a senha' });
                 }
+
+                console.log("Resultado da comparação:", isMatch);
+
                 if (!isMatch) {
-                    return res.status(401).json({ error: 'Usuário ou senha incorretos' });
+                    console.warn("Password incorreta para:", userEmail);
+                    return res.status(401).json({ error: 'Senha incorreta' });
                 }
 
-                // 3) Gera e devolve o token
-                const token = jwt.sign({ id, username }, SECRET, { expiresIn: '1h' });
-                res.json({ token });
+                const token = jwt.sign({ id, email: userEmail }, SECRET, { expiresIn: '1h' });
+                console.log("Login bem-sucedido, token gerado");
+                res.json({ token, id, email: userEmail });
             });
         }
     );
@@ -45,8 +55,6 @@ router.post('/login', (req, res) => {
 
 // Rota de registro
 router.post('/register', (req, res) => {
-    console.log("📦 Corpo do pedido recebido:", req.body);
-
     const {
         first_name,
         last_name,
@@ -96,7 +104,7 @@ router.post('/register', (req, res) => {
         const params = [
             first_name,
             last_name,
-            username,
+            email,
             age,
             gender,
             address,
