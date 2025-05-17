@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -14,7 +13,8 @@ export default function LoginForm() {
 
         const payload = {
             email: formData.get("email"),
-            password: formData.get("password")
+            password: formData.get("password"),
+            credentials: "include"  //Cookies
         };
 
         const response = await fetch("http://localhost:4000/auth/login", {

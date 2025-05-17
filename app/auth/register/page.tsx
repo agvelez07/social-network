@@ -16,6 +16,10 @@ export default function RegisterForm() {
         const firstName = (formData.get("first_name") as string)?.toLowerCase().replace(/\s+/g, '') || '';
         const lastName = (formData.get("last_name") as string)?.toLowerCase().replace(/\s+/g, '') || '';
         const displayName = `${formData.get("first_name")} ${formData.get("last_name")}`;
+        const birthdayInput = formData.get("birthday_date") as string;
+        const birthdayDate = new Date(birthdayInput).getFullYear();
+        const currentYear = new Date().getFullYear();
+        const currentAge = currentYear - birthdayDate;
 
         const payload = {
             first_name: formData.get("first_name"),
@@ -28,13 +32,14 @@ export default function RegisterForm() {
             display_name: displayName,
             address: "-",
             phone_number: "-",
-            age: 18
+            age: currentAge
         };
 
         const response = await fetch("http://localhost:4000/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            credentials: "include" //aceitar coockies
         });
 
         const result = await response.json();
@@ -42,7 +47,7 @@ export default function RegisterForm() {
 
         if (response.ok) {
             window.alert("Conta criada com sucesso!");
-            router.push('/auth/login'); // <-- Agora funciona
+            router.push('/');
         } else {
             window.alert(result.error || "Erro ao registar.");
         }

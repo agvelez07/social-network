@@ -5,6 +5,15 @@ const authenticateToken = require('../middleware/auth');
 
 const router = express.Router();
 
+// Rota para verificar se o utilizador está autenticado
+router.get('/profile', authenticateToken, (req, res) => {
+    res.json({
+        message: 'Utilizador autenticado com sucesso',
+        user: req.user, // contém id e email vindos do token JWT
+    });
+});
+
+
 // Listar todos os utilizadores
 router.get('/', (req, res) => {
     pool.query(

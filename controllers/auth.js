@@ -6,10 +6,23 @@ const bcrypt  = require('bcrypt');
 const router  = express.Router();
 const SECRET  ='secretKey';
 
+function setAuthCookie(res, payload) {
+    const token = jwt.sign(payload, SECRET, { expiresIn: '1h' });
+
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 1000 // 1 hora
+    });
+
+    return token;
+}
+
 // Rota de login
 // router.post('/login')
 router.post('/login', (req, res) => {
-    const email = req.body.email?.trim().toLowerCase(); // Normaliza o email
+    const email = req.body.email?.trim().toLowerCase();
     const password = req.body.password;
 
     pool.query(
@@ -21,16 +34,11 @@ router.post('/login', (req, res) => {
                 return res.status(500).json({ error: 'Erro no servidor' });
             }
 
-            console.log("📥 Resultado da query:", results);
-
             if (!results || results.length === 0) {
-                console.warn("Email não encontrado na BD:", email);
                 return res.status(401).json({ error: 'Email ou senha incorretos' });
             }
 
             const { id, email: userEmail, password_hash } = results[0];
-            console.log("Utilizador encontrado:", userEmail);
-            console.log("Hash da BD:", password_hash);
 
             bcrypt.compare(password, password_hash, (cmpErr, isMatch) => {
                 if (cmpErr) {
@@ -38,16 +46,12 @@ router.post('/login', (req, res) => {
                     return res.status(500).json({ error: 'Erro ao verificar a senha' });
                 }
 
-                console.log("Resultado da comparação:", isMatch);
-
                 if (!isMatch) {
-                    console.warn("Password incorreta para:", userEmail);
                     return res.status(401).json({ error: 'Senha incorreta' });
                 }
 
-                const token = jwt.sign({ id, email: userEmail }, SECRET, { expiresIn: '1h' });
-                console.log("Login bem-sucedido, token gerado");
-                res.json({ token, id, email: userEmail });
+                setAuthCookie(res, { id, email: userEmail });
+                res.json({ message: 'Login efetuado com sucesso' });
             });
         }
     );
@@ -126,7 +130,9 @@ router.post('/register', (req, res) => {
             }
 
             // 3) Sucesso: retorna mensagem OK
-            res.status(201).json({ message: 'User Has Been Created' });
+             const userId = results.insertId;
+            const token = setAuthCookie(res, { id: userId, email });
+            res.status(201).json({ message: 'Conta criada e utilizador autenticado', token });
         });
     });
 });
