@@ -5,6 +5,7 @@ import Navbar from "@/components/Header/Navbar";
 import ProfileCard from "@/components/Profile/ProfileCard";
 import ProfileInformation from "@/components/Profile/ProfileInformation";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import ProtectedRoute from "@/components/auth/ProtectedRoute"; // importa o wrapper
 
 type Props = {
     params: {
@@ -15,14 +16,8 @@ type Props = {
 export default function Profile({ params }: Props) {
     const { id } = params;
 
-    const allowedIds = ["1", "2", "3"];
-
-    if (!allowedIds.includes(id)) {
-        notFound();
-    }
-
     return (
-        <>
+        <ProtectedRoute>
             <Navbar />
             <div className="container mt-4">
                 <ProfileCard />
@@ -30,6 +25,6 @@ export default function Profile({ params }: Props) {
                     <ProfileInformation />
                 </div>
             </div>
-        </>
+        </ProtectedRoute>
     );
 }
