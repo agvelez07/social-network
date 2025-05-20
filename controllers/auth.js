@@ -13,7 +13,7 @@ function setAuthCookie(res, payload) {
         httpOnly: true,
         secure: false,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 1000 // 1 hora
+        maxAge: 36000
     });
 
     return token;
@@ -139,8 +139,12 @@ router.post('/register', (req, res) => {
 
 // controllers/auth.js
 router.post('/logout', (req, res) => {
-    // não há nada a invalidar no servidor
-    res.status(200).json({ message: 'Desconectado com sucesso' });
+    res.clearCookie('token', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false // true em produção
+    });
+    res.status(200).json({ message: 'Logout efetuado com sucesso!' });
 });
 
 module.exports = router;

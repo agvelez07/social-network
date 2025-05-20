@@ -1,10 +1,12 @@
 'use client';
 
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import Navbar from "@/components/Header/Navbar";
 import SidebarLeft from "@/components/Home/SidebarLeft";
 import SidebarRight from "@/components/Home/SidebarRight";
 import Feed from "@/components/Home/Feed";
-import ProtectedRoute from "@/components/auth/ProtectedRoute"; // importa o wrapper
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function Home() {
     return (
