@@ -21,14 +21,17 @@ interface Comment {
 
 interface PostsFeedProps {
     userId: number;
+    refresh?: boolean;
 }
 
-export default function PostsFeed({ userId }: PostsFeedProps) {
+export default function PostsFeed({ userId, refresh }: PostsFeedProps) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [commentsMap, setCommentsMap] = useState<Record<number, Comment[]>>({});
+    const [newComments, setNewComments] = useState<Record<number, string>>({});
     const [openPosts, setOpenPosts] = useState<Set<number>>(new Set());
+    const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
 
     useEffect(() => {
         const fetchPosts = async () => {
@@ -49,7 +52,7 @@ export default function PostsFeed({ userId }: PostsFeedProps) {
         };
 
         fetchPosts();
-    }, [userId]);
+    }, [userId, refresh]);
 
     const toggleComments = async (postId: number) => {
         const isOpen = openPosts.has(postId);
@@ -75,6 +78,69 @@ export default function PostsFeed({ userId }: PostsFeedProps) {
         setOpenPosts(newOpenPosts);
     };
 
+    const handleCommentChange = (postId: number, value: string) => {
+        setNewComments((prev) => ({ ...prev, [postId]: value }));
+    };
+
+    const submitComment = async (postId: number) => {
+        const content = newComments[postId];
+        if (!content?.trim()) return;
+
+        try {
+            const response = await fetch(`http://localhost:4000/comments`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    post_id: postId,
+                    author_id: userId,
+                    content: content.trim(),
+                }),
+            });
+
+            if (!response.ok) throw new Error("Erro ao enviar comentário");
+
+            const newComment: Comment = {
+                id: Date.now(),
+                post_id: postId,
+                author_id: userId,
+                content,
+                created_at: new Date().toISOString(),
+            };
+
+            setCommentsMap((prev) => ({
+                ...prev,
+                [postId]: [...(prev[postId] || []), newComment],
+            }));
+
+            setNewComments((prev) => ({ ...prev, [postId]: "" }));
+
+            // Incrementar o contador localmente
+            setPosts((prev) => prev.map(p =>
+                p.id === postId ? { ...p, commentsCount: (p.commentsCount ?? 0) + 1 } : p
+            ));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const toggleLike = (postId: number) => {
+        const alreadyLiked = likedPosts.has(postId);
+        const newLikedPosts = new Set(likedPosts);
+        if (alreadyLiked) {
+            newLikedPosts.delete(postId);
+        } else {
+            newLikedPosts.add(postId);
+        }
+        setLikedPosts(newLikedPosts);
+        setPosts((prev) => prev.map(p =>
+            p.id === postId ? {
+                ...p,
+                likesCount: (p.likesCount ?? 0) + (alreadyLiked ? -1 : 1)
+            } : p
+        ));
+    };
+
     if (loading) return <p>A carregar posts...</p>;
     if (error) return <p>{error}</p>;
     if (posts.length === 0) return <p>Sem publicações.</p>;
@@ -96,26 +162,30 @@ export default function PostsFeed({ userId }: PostsFeedProps) {
                             </small>
                         </div>
                     </div>
+
                     <div className="card-body pt-0">
                         <p><strong>{post.content}</strong></p>
                     </div>
+
                     {post.image_url && (
                         <img src={post.image_url} className="img-fluid" alt="post" />
                     )}
 
-                    {/* Likes visíveis no canto inferior esquerdo */}
-                    <div className="px-3 py-2 text-muted small">
-                        <div className="d-flex align-items-center mb-1">
-                            <i className="bi bi-hand-thumbs-up me-1"></i>
-                            {post.likesCount ?? 0} gostos
-                        </div>
-                        <div className="d-flex align-items-center">
-                            <i className="bi bi-chat-left-text me-1"></i>
-                            {post.commentsCount ?? 0} comentários
-                        </div>
+                    <div className="card-footer d-flex justify-content-around bg-white border-0 px-3">
+                        <button
+                            className={`btn ${likedPosts.has(post.id) ? 'btn-dark' : 'btn-transparent'}`}
+                            onClick={() => toggleLike(post.id)}
+                        >
+                            <i className="bi bi-hand-thumbs-up"></i> Gosto {post.likesCount ?? 0}
+                        </button>
+                        <button className="btn btn-transparent" onClick={() => toggleComments(post.id)}>
+                            <i className="bi bi-chat-left-text"></i> Comentários {post.commentsCount ?? 0}
+                        </button>
+                        <button className="btn btn-transparent">
+                            <i className="bi bi-share"></i> Partilhar
+                        </button>
                     </div>
 
-                    {/* Comentários */}
                     <div className={`collapse ${openPosts.has(post.id) ? 'show' : ''}`}>
                         <div className="card-body border-top">
                             {commentsMap[post.id]?.length ? (
@@ -126,8 +196,20 @@ export default function PostsFeed({ userId }: PostsFeedProps) {
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-muted mb-0">Sem comentários.</p>
+                                <p className="text-muted mb-2">Sem comentários.</p>
                             )}
+
+                            <div className="d-flex mt-2">
+                                <input
+                                    className="form-control me-2"
+                                    placeholder="Escreve um comentário..."
+                                    value={newComments[post.id] || ""}
+                                    onChange={(e) => handleCommentChange(post.id, e.target.value)}
+                                />
+                                <button className="btn btn-primary" onClick={() => submitComment(post.id)}>
+                                    Enviar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
