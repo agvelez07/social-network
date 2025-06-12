@@ -35,6 +35,27 @@ body {
     background-color: #f0f2f5;
 }
 
+/* estilos para o dropdown */
+.search-container {
+    position: relative;       /* ponto de referência para o dropdown */
+    width: 100%;              /* para deixar o dropdown à largura total do input */
+}
+
+.search-dropdown {
+    position: absolute;
+    top: calc(100% + 0.25rem); /* logo abaixo do input, com leve espaçamento */
+    left: 0;
+    width: 100%;
+    max-height: 250px;        /* limita a altura e habilita scroll */
+    overflow-y: auto;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    z-index: 1000;            /* acima de outros elementos da página */
+}
+
+
 .search-icon {
     position: absolute;
     top: 50%;

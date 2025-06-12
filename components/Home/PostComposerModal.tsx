@@ -1,32 +1,35 @@
 'use client';
-import { useState } from "react";
+import { useState } from 'react';
 
 interface Props {
     userId: number;
-    onPostCreated: () => void;
+    onPostCreatedAction: () => void;
 }
 
-export default function PostComposerModal({ userId, onPostCreated }: Props) {
-    const [content, setContent] = useState("");
-    const [visibility, setVisibility] = useState("public");
+export default function PostComposerModal({ userId, onPostCreatedAction }: Props) {
+    const [content, setContent] = useState('');
+    const [visibility, setVisibility] = useState('public');
 
     const handleSubmit = async () => {
         if (!content.trim()) return;
 
         try {
-            const response = await fetch(`http://localhost:4000/posts/${userId}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ content, visibility })
-            });
+            const response = await fetch(
+                `http://localhost:4000/posts`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ content, visibility }),
+                }
+            );
 
-            if (!response.ok) throw new Error("Erro ao criar post");
+            if (!response.ok) throw new Error('Erro ao criar post');
 
-            setContent("");
-            setVisibility("public");
-            (document.getElementById("closePostModalBtn") as HTMLButtonElement)?.click();
-            onPostCreated();
+            setContent('');
+            setVisibility('public');
+            (document.getElementById('closePostModalBtn') as HTMLButtonElement)?.click();
+            onPostCreatedAction();
         } catch (err) {
             console.error(err);
         }
@@ -38,7 +41,12 @@ export default function PostComposerModal({ userId, onPostCreated }: Props) {
                 <div className="modal-content rounded-4">
                     <div className="modal-header">
                         <h5 className="modal-title">Criar publicação</h5>
-                        <button type="button" className="btn-close" data-bs-dismiss="modal" id="closePostModalBtn"></button>
+                        <button
+                            type="button"
+                            className="btn-close"
+                            data-bs-dismiss="modal"
+                            id="closePostModalBtn"
+                        ></button>
                     </div>
                     <div className="modal-body">
                         <textarea
@@ -58,8 +66,12 @@ export default function PostComposerModal({ userId, onPostCreated }: Props) {
                         </select>
                     </div>
                     <div className="modal-footer">
-                        <button className="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button className="btn btn-primary" onClick={handleSubmit}>Publicar</button>
+                        <button className="btn btn-secondary" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button className="btn btn-primary" onClick={handleSubmit}>
+                            Publicar
+                        </button>
                     </div>
                 </div>
             </div>

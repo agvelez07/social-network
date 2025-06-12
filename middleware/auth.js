@@ -9,7 +9,7 @@ function authenticateToken(req, res, next) {
     }
 
     jwt.verify(token, SECRET, (err, user) => {
-        if (err) {npm
+        if (err) {
             return res.status(403).json({ error: 'Token inválido ou expirado. Acesso proibido.' });
         }
 

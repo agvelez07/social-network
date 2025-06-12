@@ -1,7 +1,6 @@
 'use client';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import Navbar from "@/components/Header/Navbar";
 import SidebarLeft from "@/components/Home/SidebarLeft";
 import SidebarRight from "@/components/Home/SidebarRight";

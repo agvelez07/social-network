@@ -1,219 +1,397 @@
 'use client';
-import React, { useEffect, useState } from "react";
 
+import { useEffect, useState } from 'react';
+import { fetchWithTimeout } from '@/components/src/utils/fetchWithTimeout';
 interface Post {
     id: number;
-    author_id: number;
     content: string;
+    authorName: string;
+    authorId: number;
     created_at: string;
-    image_url?: string;
     likesCount?: number;
     commentsCount?: number;
+    likedByUser: boolean;
+    visibility: string;
 }
 
 interface Comment {
     id: number;
     post_id: number;
-    author_id: number;
     content: string;
     created_at: string;
+    authorName: string;
+    authorId: number;
 }
 
-interface PostsFeedProps {
+interface Props {
     userId: number;
-    refresh?: boolean;
+    refresh: boolean;
 }
 
-export default function PostsFeed({ userId, refresh }: PostsFeedProps) {
+const DEFAULT_TIMEOUT = 8000;
+const dateOpts: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+};
+
+export default function PostsFeed({ userId, refresh }: Props) {
     const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [commentsMap, setCommentsMap] = useState<Record<number, Comment[]>>({});
-    const [newComments, setNewComments] = useState<Record<number, string>>({});
-    const [openPosts, setOpenPosts] = useState<Set<number>>(new Set());
+    const [error, setError] = useState<string | null>(null);
     const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
+    const [newComments, setNewComments] = useState<Record<number, string>>({});
+    const [openComments, setOpenComments] = useState<Set<number>>(new Set());
+    const [editingComment, setEditingComment] = useState<{ id: number; text: string } | null>(null);
+    const [editingPost, setEditingPost] = useState<{ id: number; content: string } | null>(null);
 
     useEffect(() => {
-        const fetchPosts = async () => {
+        async function fetchData() {
             try {
-                const response = await fetch(`http://localhost:4000/posts/${userId}`, {
-                    method: "GET",
-                    credentials: "include",
-                });
-                if (!response.ok) throw new Error("Erro ao buscar os posts");
-                const data: Post[] = await response.json();
+                setError(null);
+                setCommentsMap({});
+
+                // carrega posts
+                const res = await fetchWithTimeout(
+                    'http://localhost:4000/posts',
+                    { credentials: 'include' },
+                    DEFAULT_TIMEOUT
+                );
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                let data: any[] = await res.json();
+                data = data.map(p => ({ ...p, authorId: p.author_id }));
                 setPosts(data);
-            } catch (err) {
-                console.error(err);
-                setError("Erro ao carregar os posts.");
-            } finally {
-                setLoading(false);
-            }
-        };
 
-        fetchPosts();
-    }, [userId, refresh]);
+                // estado inicial de likes
+                const initialLiked = new Set<number>();
+                data.forEach(p => p.likedByUser && initialLiked.add(p.id));
+                setLikedPosts(initialLiked);
 
-    const toggleComments = async (postId: number) => {
-        const isOpen = openPosts.has(postId);
-        const newOpenPosts = new Set(openPosts);
-        if (isOpen) {
-            newOpenPosts.delete(postId);
-        } else {
-            newOpenPosts.add(postId);
-            if (!commentsMap[postId]) {
-                try {
-                    const response = await fetch(`http://localhost:4000/comments/${postId}`, {
-                        method: "GET",
-                        credentials: "include",
-                    });
-                    if (!response.ok) throw new Error("Erro ao buscar comentários");
-                    const comments: Comment[] = await response.json();
-                    setCommentsMap((prev) => ({ ...prev, [postId]: comments }));
-                } catch (err) {
-                    console.error(err);
+                // carrega comentários de cada post
+                for (const p of data) {
+                    const r = await fetchWithTimeout(
+                        'http://localhost:4000/comments/' + p.id,
+                        { credentials: 'include' },
+                        DEFAULT_TIMEOUT
+                    );
+                    const body = await r.json();
+                    const cmts: Comment[] = Array.isArray(body)
+                        ? body
+                        : Array.isArray((body as any).comments)
+                            ? (body as any).comments
+                            : [];
+                    setCommentsMap(prev => ({ ...prev, [p.id]: cmts }));
                 }
+            } catch (e) {
+                setError(e instanceof Error ? e.message : String(e));
             }
         }
-        setOpenPosts(newOpenPosts);
+
+        if (userId) {
+            fetchData();
+        }
+    }, [userId, refresh]);
+
+    const toggleLike = async (postId: number) => {
+        const already = likedPosts.has(postId);
+        await fetchWithTimeout(
+            'http://localhost:4000/likes',
+            {
+                method: already ? 'DELETE' : 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_type: 'post', target_id: postId }),
+            },
+            DEFAULT_TIMEOUT
+        );
+        setLikedPosts(s => {
+            const n = new Set(s);
+            already ? n.delete(postId) : n.add(postId);
+            return n;
+        });
+        setPosts(ps =>
+            ps.map(p =>
+                p.id === postId ? { ...p, likesCount: (p.likesCount || 0) + (already ? -1 : 1) } : p
+            )
+        );
     };
 
-    const handleCommentChange = (postId: number, value: string) => {
-        setNewComments((prev) => ({ ...prev, [postId]: value }));
+    const toggleComments = (postId: number) => {
+        setOpenComments(s => {
+            const n = new Set(s);
+            n.has(postId) ? n.delete(postId) : n.add(postId);
+            return n;
+        });
     };
 
     const submitComment = async (postId: number) => {
-        const content = newComments[postId];
-        if (!content?.trim()) return;
-
-        try {
-            const response = await fetch(`http://localhost:4000/comments`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                    post_id: postId,
-                    author_id: userId,
-                    content: content.trim(),
-                }),
-            });
-
-            if (!response.ok) throw new Error("Erro ao enviar comentário");
-
-            const newComment: Comment = {
-                id: Date.now(),
-                post_id: postId,
-                author_id: userId,
-                content,
-                created_at: new Date().toISOString(),
-            };
-
-            setCommentsMap((prev) => ({
-                ...prev,
-                [postId]: [...(prev[postId] || []), newComment],
-            }));
-
-            setNewComments((prev) => ({ ...prev, [postId]: "" }));
-
-            // Incrementar o contador localmente
-            setPosts((prev) => prev.map(p =>
-                p.id === postId ? { ...p, commentsCount: (p.commentsCount ?? 0) + 1 } : p
-            ));
-        } catch (err) {
-            console.error(err);
-        }
+        const content = newComments[postId]?.trim();
+        if (!content) return;
+        await fetchWithTimeout(
+            'http://localhost:4000/comments',
+            {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: postId, content }),
+            },
+            DEFAULT_TIMEOUT
+        );
+        const r = await fetchWithTimeout(
+            'http://localhost:4000/comments/' + postId,
+            { credentials: 'include' },
+            DEFAULT_TIMEOUT
+        );
+        const body = await r.json();
+        const cmts: Comment[] = Array.isArray(body)
+            ? body
+            : Array.isArray((body as any).comments)
+                ? (body as any).comments
+                : [];
+        setCommentsMap(prev => ({ ...prev, [postId]: cmts }));
+        setNewComments(prev => ({ ...prev, [postId]: '' }));
     };
 
-    const toggleLike = (postId: number) => {
-        const alreadyLiked = likedPosts.has(postId);
-        const newLikedPosts = new Set(likedPosts);
-        if (alreadyLiked) {
-            newLikedPosts.delete(postId);
-        } else {
-            newLikedPosts.add(postId);
-        }
-        setLikedPosts(newLikedPosts);
-        setPosts((prev) => prev.map(p =>
-            p.id === postId ? {
-                ...p,
-                likesCount: (p.likesCount ?? 0) + (alreadyLiked ? -1 : 1)
-            } : p
-        ));
+    const startEdit = (c: Comment) => setEditingComment({ id: c.id, text: c.content });
+    const cancelEdit = () => setEditingComment(null);
+
+    const saveEdit = async (postId: number) => {
+        if (!editingComment) return;
+        await fetchWithTimeout(
+            'http://localhost:4000/comments',
+            {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ comment_id: editingComment.id, content: editingComment.text }),
+            },
+            DEFAULT_TIMEOUT
+        );
+        const r = await fetchWithTimeout(
+            'http://localhost:4000/comments/' + postId,
+            { credentials: 'include' },
+            DEFAULT_TIMEOUT
+        );
+        const body = await r.json();
+        const cmts: Comment[] = Array.isArray(body)
+            ? body
+            : Array.isArray((body as any).comments)
+                ? (body as any).comments
+                : [];
+        setCommentsMap(prev => ({ ...prev, [postId]: cmts }));
+        cancelEdit();
     };
 
-    if (loading) return <p>A carregar posts...</p>;
-    if (error) return <p>{error}</p>;
-    if (posts.length === 0) return <p>Sem publicações.</p>;
+    const deleteComment = async (postId: number, commentId: number) => {
+        await fetchWithTimeout(
+            'http://localhost:4000/comments',
+            {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ comment_id: commentId }),
+            },
+            DEFAULT_TIMEOUT
+        );
+        const r = await fetchWithTimeout(
+            'http://localhost:4000/comments/' + postId,
+            { credentials: 'include' },
+            DEFAULT_TIMEOUT
+        );
+        const body = await r.json();
+        const cmts: Comment[] = Array.isArray(body)
+            ? body
+            : Array.isArray((body as any).comments)
+                ? (body as any).comments
+                : [];
+        setCommentsMap(prev => ({ ...prev, [postId]: cmts }));
+    };
+
+    const startEditPost = (p: Post) => setEditingPost({ id: p.id, content: p.content });
+    const cancelEditPost = () => setEditingPost(null);
+
+    const saveEditPost = async (postId: number) => {
+        if (!editingPost) return;
+        await fetchWithTimeout(
+            'http://localhost:4000/posts',
+            {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: postId, content: editingPost.content }),
+            },
+            DEFAULT_TIMEOUT
+        );
+        setPosts(ps =>
+            ps.map(p => (p.id === postId ? { ...p, content: editingPost.content } : p))
+        );
+        cancelEditPost();
+    };
+
+    const deletePost = async (postId: number) => {
+        await fetchWithTimeout(
+            'http://localhost:4000/posts',
+            {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: postId }),
+            },
+            DEFAULT_TIMEOUT
+        );
+        setPosts(ps => ps.filter(p => p.id !== postId));
+    };
+
+    if (error) return <div className="alert alert-danger">⚠️ {error}</div>;
+    if (!posts.length) return <p className="text-center text-muted">Ainda não há posts.</p>;
 
     return (
-        <>
-            {posts.map((post) => (
-                <div key={post.id} className="card mb-3 rounded-4 overflow-hidden">
-                    <div className="card-header d-flex align-items-center bg-white border-0 rounded">
-                        <img
-                            src={`https://i.pravatar.cc/40?u=${post.author_id}`}
-                            className="rounded-circle me-2"
-                            alt="user"
-                        />
-                        <div>
-                            <strong>{post.author_id}</strong><br />
-                            <small className="text-muted">
-                                {new Date(post.created_at).toLocaleString("pt-PT")} · <i className="bi bi-globe2"></i>
-                            </small>
-                        </div>
-                    </div>
+        <div className="list-group">
+            {posts.map(post => (
+                <div key={post.id} className="list-group-item position-relative mb-4">
+                    <strong className="d-block mb-1">{post.authorName}</strong>
+                    <small className="text-muted">
+                        Data de Criação:{' '}
+                        {new Date(post.created_at)
+                            .toLocaleDateString('pt-PT', dateOpts)}
+                    </small>                    <div className="text-muted"><em>Visibilidade: {post.visibility}</em></div>
 
-                    <div className="card-body pt-0">
-                        <p><strong>{post.content}</strong></p>
-                    </div>
-
-                    {post.image_url && (
-                        <img src={post.image_url} className="img-fluid" alt="post" />
+                    {editingPost?.id === post.id ? (
+                        <>
+              <textarea
+                  className="form-control mb-2 mt-2"
+                  value={editingPost.content}
+                  onChange={e => setEditingPost({ ...editingPost, content: e.target.value })}
+              />
+                            <button
+                                className="btn btn-success btn-sm me-1"
+                                onClick={() => saveEditPost(post.id)}
+                            >
+                                Guardar
+                            </button>
+                            <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={cancelEditPost}
+                            >
+                                Cancelar
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <p className="mt-2">{post.content}</p>
+                            {post.authorId === userId && (
+                                <div className="position-absolute top-0 end-0">
+                                    <button
+                                        className="btn btn-sm btn-light me-1"
+                                        onClick={() => startEditPost(post)}
+                                    >
+                                        Editar
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-outline-danger"
+                                        onClick={() => deletePost(post.id)}
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
 
-                    <div className="card-footer d-flex justify-content-around bg-white border-0 px-3">
+                    <div className="d-flex gap-2 mt-2">
                         <button
-                            className={`btn ${likedPosts.has(post.id) ? 'btn-dark' : 'btn-transparent'}`}
+                            className={`btn btn-sm ${
+                                likedPosts.has(post.id) ? 'btn-dark' : 'btn-outline-secondary'
+                            }`}
                             onClick={() => toggleLike(post.id)}
                         >
-                            <i className="bi bi-hand-thumbs-up"></i> Gosto {post.likesCount ?? 0}
+                            Gosto {post.likesCount || 0}
                         </button>
-                        <button className="btn btn-transparent" onClick={() => toggleComments(post.id)}>
-                            <i className="bi bi-chat-left-text"></i> Comentários {post.commentsCount ?? 0}
-                        </button>
-                        <button className="btn btn-transparent">
-                            <i className="bi bi-share"></i> Partilhar
+                        <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => toggleComments(post.id)}
+                        >
+                            Comentários {commentsMap[post.id]?.length || 0}
                         </button>
                     </div>
 
-                    <div className={`collapse ${openPosts.has(post.id) ? 'show' : ''}`}>
-                        <div className="card-body border-top">
-                            {commentsMap[post.id]?.length ? (
-                                commentsMap[post.id].map(comment => (
-                                    <div key={comment.id} className="mb-2">
-                                        <small><strong>{comment.author_id}</strong> — {new Date(comment.created_at).toLocaleString("pt-PT")}</small>
-                                        <p className="mb-1">{comment.content}</p>
+                    <div className="mt-2 d-flex gap-2">
+                        <input
+                            className="form-control"
+                            placeholder="Escreve um comentário..."
+                            value={newComments[post.id] || ''}
+                            onChange={e => setNewComments(prev => ({ ...prev, [post.id]: e.target.value }))}
+                        />
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => submitComment(post.id)}
+                        >
+                            Enviar
+                        </button>
+                    </div>
+
+                    {openComments.has(post.id) && (
+                        <div className="mt-3">
+                            {commentsMap[post.id]?.map(c => (
+                                <div key={c.id} className="border rounded p-2 mb-2 position-relative">
+                                    <div>
+                                        <strong>{c.authorName}</strong>
+                                        {editingComment?.id === c.id ? (
+                                            <textarea
+                                                className="form-control mt-1 mb-2"
+                                                value={editingComment.text}
+                                                onChange={e => setEditingComment({ id: c.id, text: e.target.value })}
+                                            />
+                                        ) : (
+                                            <p className="mb-0 mt-1">{c.content}</p>
+                                        )}
+                                        <small className="text-muted">
+                                            Data de Criação:{' '}
+                                            {new Date(post.created_at)
+                                                .toLocaleDateString('pt-PT', dateOpts)}
+                                        </small>
                                     </div>
-                                ))
-                            ) : (
-                                <p className="text-muted mb-2">Sem comentários.</p>
-                            )}
-
-                            <div className="d-flex mt-2">
-                                <input
-                                    className="form-control me-2"
-                                    placeholder="Escreve um comentário..."
-                                    value={newComments[post.id] || ""}
-                                    onChange={(e) => handleCommentChange(post.id, e.target.value)}
-                                />
-                                <button className="btn btn-primary" onClick={() => submitComment(post.id)}>
-                                    Enviar
-                                </button>
-                            </div>
+                                    {c.authorId === userId && (
+                                        <div className="position-absolute top-0 end-0">
+                                            {editingComment?.id === c.id ? (
+                                                <>
+                                                    <button
+                                                        className="btn btn-sm btn-success me-1"
+                                                        onClick={() => saveEdit(post.id)}
+                                                    >
+                                                        Guardar
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm btn-secondary"
+                                                        onClick={cancelEdit}
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        className="btn btn-sm btn-light me-1"
+                                                        onClick={() => startEdit(c)}
+                                                    >
+                                                        ⋮
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm btn-outline-danger"
+                                                        onClick={() => deleteComment(post.id, c.id)}
+                                                    >
+                                                        Apagar
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
-                    </div>
+                    )}
                 </div>
             ))}
-        </>
+        </div>
     );
 }

@@ -1,25 +1,24 @@
 'use client';
-import { useEffect, useState } from 'react';
 
-export function useAuthUser() {
-    const [user, setUser] = useState<{ id: number, email: string } | null>(null);
+import { useState, useEffect } from 'react';
+import { AuthUser } from '@/types/auth';
+
+export function useAuthUser(): AuthUser | null {
+    const [user, setUser] = useState<AuthUser | null>(null);
 
     useEffect(() => {
-        const fetchUser = async () => {
+        async function fetchUser() {
             try {
                 const res = await fetch('http://localhost:4000/users/profile', {
-                    method: 'GET',
                     credentials: 'include',
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    setUser(data.user); // vem de req.user no middleware
-                }
-            } catch (error) {
-                console.error("Erro ao obter utilizador autenticado", error);
+                if (!res.ok) throw new Error('Erro ao obter perfil do utilizador');
+                const data: AuthUser = await res.json();
+                setUser(data);
+            } catch (err) {
+                console.error(err);
             }
-        };
-
+        }
         fetchUser();
     }, []);
 

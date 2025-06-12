@@ -11,9 +11,9 @@ function setAuthCookie(res, payload) {
 
     res.cookie('token', token, {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: 'lax',
-        maxAge: 36000
+        maxAge: 60 * 60 * 1000
     });
 
     return token;
@@ -22,35 +22,24 @@ function setAuthCookie(res, payload) {
 // Rota de login
 // router.post('/login')
 router.post('/login', (req, res) => {
-    const email = req.body.email?.trim().toLowerCase();
+    const email    = req.body.email?.trim().toLowerCase();
     const password = req.body.password;
 
     pool.query(
-        'SELECT id, email, password_hash FROM users WHERE email = ?',
+        'SELECT id, email, password_hash, display_name FROM users WHERE email = ?',
         [email],
         (err, results) => {
-            if (err) {
-                console.error("Erro na query:", err);
-                return res.status(500).json({ error: 'Erro no servidor' });
-            }
-
-            if (!results || results.length === 0) {
+            if (err)   return res.status(500).json({ error: 'Erro no servidor' });
+            if (!results.length)
                 return res.status(401).json({ error: 'Email ou senha incorretos' });
-            }
 
-            const { id, email: userEmail, password_hash } = results[0];
+            const { id, email: userEmail, password_hash, display_name } = results[0];
 
             bcrypt.compare(password, password_hash, (cmpErr, isMatch) => {
-                if (cmpErr) {
-                    console.error("Erro ao comparar password:", cmpErr);
-                    return res.status(500).json({ error: 'Erro ao verificar a senha' });
-                }
+                if (cmpErr)   return res.status(500).json({ error: 'Erro ao verificar a senha' });
+                if (!isMatch) return res.status(401).json({ error: 'Senha incorreta' });
 
-                if (!isMatch) {
-                    return res.status(401).json({ error: 'Senha incorreta' });
-                }
-
-                setAuthCookie(res, { id, email: userEmail });
+                setAuthCookie(res, { id,userId:id, email: userEmail, display_name });
                 res.json({ message: 'Login efetuado com sucesso' });
             });
         }
