@@ -3,42 +3,43 @@ const pool = require('../db');
 const authenticateToken = require("../middleware/auth");
 
 const router = express.Router();
-router.use(express.json());           // ← Certifica-te de teres isto no app.js antes de montar o router
+router.use(express.json());
 router.use(authenticateToken);
 
-/* GET /comments/:id → Comentários de um post */
+// GET /comments/:id → Listar comentários de um post
 router.get('/:id', (req, res) => {
     const postID = req.params.id;
     const query = `
-    SELECT
-      c.id,
-      c.post_id,
-      c.content,
-      c.created_at,
-      c.author_id  AS authorId,
-      u.display_name AS authorName
-    FROM comments c
-    JOIN users u ON u.id = c.author_id
-    WHERE c.post_id = ?
-    ORDER BY c.created_at ASC
-  `;
+        SELECT
+            c.id,
+            c.post_id,
+            c.content,
+            c.created_at,
+            c.author_id  AS authorId,
+            u.display_name AS authorName
+        FROM comments c
+                 JOIN users u ON u.id = c.author_id
+        WHERE c.post_id = ?
+        ORDER BY c.created_at ASC
+    `;
     pool.query(query, [postID], (err, results) => {
         if (err) return res.status(500).json({ error: 'Erro ao buscar comentários' });
         res.json(results);
     });
 });
 
-/* POST /comments → Criar comentário */
+// POST /comments → Criar comentário
 router.post('/', (req, res) => {
     const { post_id, content } = req.body;
-    const author_id = req.user.userId ?? req.user.id;
+    // Removido operador ??, uso de ternário para tratar null/undefined
+    const author_id = req.user.userId != null ? req.user.userId : req.user.id;
     if (!post_id || !content) {
         return res.status(400).json({ error: 'post_id e content são obrigatórios' });
     }
     const query = `
-    INSERT INTO comments (post_id, author_id, content)
-    VALUES (?, ?, ?)
-  `;
+        INSERT INTO comments (post_id, author_id, content)
+        VALUES (?, ?, ?)
+    `;
     pool.query(query, [post_id, author_id, content], (err) => {
         if (err) return res.status(500).json({ error: 'Erro ao criar comentário' });
         res.status(201).json({ message: 'Comentário criado com sucesso' });
@@ -48,7 +49,8 @@ router.post('/', (req, res) => {
 /* PUT /comments → Editar comentário (só autor) */
 router.put('/', (req, res) => {
     const { comment_id, content } = req.body;
-    const userId = req.user.userId ?? req.user.id;
+    // Removido operador ??
+    const userId = req.user.userId != null ? req.user.userId : req.user.id;
     if (!comment_id || !content) {
         return res.status(400).json({ error: 'comment_id e content são obrigatórios' });
     }
@@ -74,7 +76,8 @@ router.put('/', (req, res) => {
 /* DELETE /comments → Eliminar comentário (só autor) */
 router.delete('/', (req, res) => {
     const { comment_id } = req.body;
-    const userId = req.user.userId ?? req.user.id;
+    // Removido operador ??
+    const userId = req.user.userId != null ? req.user.userId : req.user.id;
     if (!comment_id) {
         return res.status(400).json({ error: 'comment_id é obrigatório' });
     }

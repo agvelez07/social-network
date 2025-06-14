@@ -6,45 +6,12 @@ const authenticateToken = require('../middleware/auth');
 const router = express.Router();
 router.use(authenticateToken);
 
-// // GET posts do utilizador autenticado
-// router.get('/', (req, res) => {
-//     const userId = req.user.userId;
-//
-//     const query = `
-//         SELECT
-//             p.id,
-//             p.content,
-//             p.created_at,
-//             p.visibility,
-//             p.author_id,
-//             u.display_name AS authorName,
-//             (SELECT COUNT(*) FROM likes l
-//              WHERE l.target_type = 'post' AND l.target_id = p.id
-//             ) AS likesCount,
-//             (SELECT COUNT(*) FROM comments c
-//              WHERE c.post_id = p.id
-//             ) AS commentsCount
-//         FROM posts p
-//         JOIN users u ON u.id = p.author_id
-//         WHERE
-//             p.visibility = 'public'
-//             OR p.author_id = ?
-//         ORDER BY p.created_at DESC
-//     `;
-//
-//     pool.query(query, [userId], (err, results) => {
-//         if (err) {
-//             console.error(err);
-//             return res.status(500).json({ error: 'Erro ao buscar publicações' });
-//         }
-//         res.json(results);
-//     });
-// });
-//
-
-
+/**
+ * GET /posts
+ * Lista posts do utilizador autenticado e públicos/amigos
+ */
 router.get('/', (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const query = `
         SELECT
             p.id,
@@ -90,17 +57,20 @@ router.get('/', (req, res) => {
     });
 });
 
-
-// ADD post para o utilizador autenticado (somente texto)
+/**
+ * POST /posts
+ * Cria post para o utilizador autenticado (somente texto)
+ */
 router.post('/', (req, res) => {
     const { content, visibility } = req.body;
+    const userId = req.user.id;
 
     if (!content) {
         return res.status(400).json({ error: 'Conteúdo é obrigatório' });
     }
 
     const query = 'INSERT INTO posts (author_id, content, visibility) VALUES (?, ?, ?)';
-    pool.query(query, [req.user.userId, content, visibility], (err) => {
+    pool.query(query, [userId, content, visibility], (err) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Erro ao criar publicação' });
@@ -109,16 +79,20 @@ router.post('/', (req, res) => {
     });
 });
 
-// DELETE post do utilizador autenticado
+/**
+ * DELETE /posts
+ * Remove post do utilizador autenticado
+ */
 router.delete('/', (req, res) => {
     const { post_id: postId } = req.body;
+    const userId = req.user.id;
 
     if (!postId) {
         return res.status(400).json({ error: 'post_id é obrigatório' });
     }
 
     const query = 'DELETE FROM posts WHERE author_id = ? AND id = ?';
-    pool.query(query, [req.user.userId, postId], (err) => {
+    pool.query(query, [userId, postId], (err) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Erro ao eliminar publicação' });
@@ -127,17 +101,20 @@ router.delete('/', (req, res) => {
     });
 });
 
-
-// EDITAR post do utilizador autenticado
+/**
+ * PUT /posts
+ * Editar post do utilizador autenticado
+ */
 router.put('/', (req, res) => {
     const { post_id: postId, content } = req.body;
+    const userId = req.user.id;
 
     if (!postId || !content) {
         return res.status(400).json({ error: 'post_id e content são obrigatórios' });
     }
 
     const query = 'UPDATE posts SET content = ? WHERE id = ? AND author_id = ?';
-    pool.query(query, [content, postId, req.user.userId], (err, result) => {
+    pool.query(query, [content, postId, userId], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Erro ao editar publicação' });
@@ -148,6 +125,5 @@ router.put('/', (req, res) => {
         res.status(200).json({ message: 'Publicação editada com sucesso' });
     });
 });
-
 
 module.exports = router;
